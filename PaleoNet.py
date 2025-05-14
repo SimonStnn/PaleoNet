@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from PIL import Image
+from typing import Any
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
@@ -22,7 +23,7 @@ st.set_page_config(
 
 # Load your model and class mapping
 @st.cache_resource
-def load_model():
+def load_model() -> tuple[tf.keras.Model, dict[str, int], dict[str, Any]]:
     try:
         model = tf.keras.models.load_model(
             "model/dinosaur_classifier_transfer_learning.keras"
@@ -30,19 +31,16 @@ def load_model():
 
         # Load the class mapping
         with open("model/dinosaur_class_mapping.json", "r", encoding="utf-8") as f:
-            class_mapping = json.load(f)
-
-        # Invert the class mapping (from indices to class names)
-        class_labels = {v: k for k, v in class_mapping.items()}
+            class_mapping: dict[str, int] = json.load(f)
 
         # Load performance metrics
         with open("model/dinosaur_model_performance.json", "r", encoding="utf-8") as f:
-            performance = json.load(f)
+            performance: dict[str, Any] = json.load(f)
 
-        return model, class_labels, performance
+        return model, class_mapping, performance
     except Exception as e:  # type: ignore
         st.error(f"Error loading model: {e}")
-        return None, None, None
+        return None, {}, {}
 
 
 # Define image size
@@ -205,16 +203,8 @@ def display_dino_info(species):
         info = dino_info[species]
 
         st.subheader(f"About {species_name}")
-        col1, col2 = st.columns([1, 2])
 
-        with col1:
-            st.markdown(f"**Period:** {info['period']}")
-            st.markdown(f"**Diet:** {info['diet']}")
-            st.markdown(f"**Length:** {info['length']}")
-            st.markdown(f"**Weight:** {info['weight']}")
-
-        with col2:
-            st.markdown(f"**Description:** {info['description']}")
+        st.table(pd.DataFrame.from_dict(info, orient="index"))
 
 
 # Main app
@@ -228,11 +218,12 @@ def main():
     )
 
     app_mode = st.sidebar.selectbox(
-        "Choose Mode", ["Home", "Upload Image", "Sample Gallery", "Model Performance"]
-    )
+        "Choose Mode", ["Home", "Upload Image", "Sample Gallery"]
+    )  # Load model and data
+    model, class_mapping, performance = load_model()
 
-    # Load model and data
-    model, class_labels, performance = load_model()
+    # Create class_labels (invert the mapping from class names to indices)
+    class_labels = {i: k for i, k in enumerate(class_mapping.keys())}
 
     # Home page
     if app_mode == "Home":
@@ -255,9 +246,7 @@ def main():
         PaleoNet uses transfer learning with EfficientNetB0 as the base model, trained on a dataset of dinosaur images. 
         The model can identify the following species:
         """
-        )
-
-        # Display available species as a grid
+        )  # Display available species as a grid
         species_list = list(class_labels.values())
         cols = st.columns(3)
         for i, species in enumerate(species_list):
@@ -271,7 +260,7 @@ def main():
         
         - **Upload Image**: Upload your own dinosaur image for classification
         - **Sample Gallery**: View and classify sample images from our test set
-        - **Model Performance**: See how well our model performs
+        - Visit the **Model Performance** page in the sidebar pages menu to see how well our model performs
         """
         )
 
@@ -350,18 +339,21 @@ def main():
             with col1:
                 st.image(img, caption="Uploaded Image", use_container_width=True)
 
-            with col2:
-                with st.spinner("Classifying..."):
-                    pred_idx, confidence, top_3_classes, top_3_confidences = (
-                        predict_species(img, model, class_labels)
+            try:
+                with col2:
+                    with st.spinner("Classifying..."):
+                        pred_idx, confidence, top_3_classes, top_3_confidences = (
+                            predict_species(img, model, class_labels)
+                        )
+
+                    display_prediction(
+                        pred_idx, confidence, top_3_classes, top_3_confidences
                     )
 
-                display_prediction(
-                    pred_idx, confidence, top_3_classes, top_3_confidences
-                )
-
-            # Display info about the predicted species
-            display_dino_info(top_3_classes[0])
+                # Display info about the predicted species
+                display_dino_info(top_3_classes[0])
+            except Exception as e:  # type: ignore[broad-exception-caught]
+                st.error(f"Error during prediction: {str(e)[:150]}")
 
     # Sample gallery page
     elif app_mode == "Sample Gallery":
@@ -415,96 +407,20 @@ def main():
                             pred_idx, confidence, top_3_classes, top_3_confidences
                         )
 
-                        if correct:
-                            st.error(
-                                f"""
-                                **Oops!** The model predicted **{top_3_classes[0].replace('_', ' ')}** instead of the true species: **{selected_species.replace('_', ' ')}**.
-                                """
-                            )
-                        else:
-                            st.success(
-                                f"""
-                                **Success!** The model correctly predicted the species: **{top_3_classes[0].replace('_', ' ')}**.
-                                """
-                            )
-
-                    st.divider()
-
-    # Model performance page
-    elif app_mode == "Model Performance":
-        st.title("Model Performance")
-
-        if performance is not None:
-            st.subheader("Overall Metrics")
-            col1, col2, col3, col4 = st.columns(4)
-
-            col1.metric("Accuracy", f"{performance['accuracy']*100:.2f}%")
-            col2.metric("Precision", f"{performance['precision']*100:.2f}%")
-            col3.metric("Recall", f"{performance['recall']*100:.2f}%")
-            col4.metric("F1 Score", f"{performance['f1_score']*100:.2f}%")
-
-            st.markdown(
-                """
-            ### About the Model
-            
-            Our model is built using transfer learning with EfficientNetB0 as the base model, which was pre-trained on ImageNet. 
-            We fine-tuned the model on our dinosaur dataset with the following steps:
-            
-            1. Split the dataset into train (70%), validation (15%), and test (15%) sets
-            2. Used data augmentation for the training set
-            3. First trained only the top layers while keeping the base model frozen
-            4. Then fine-tuned the model by unfreezing the last 10% of the base model layers
-            5. Used class weights to handle class imbalance
-            
-            ### Performance Analysis
-            
-            The model performs well on most species, achieving an overall accuracy of over 70%. 
-            Some species are easier to classify than others due to distinctive features.
-            
-            Common misclassifications occur between:
-            
-            - Similar body types (e.g., bipedal carnivores)
-            - Species with similar head crests or frills
-            - Species commonly depicted in similar environments
-            """
-            )
-
-            # Show sample predictions
-            st.subheader("Visualization")
-
-            # Display confusion matrix
-            if st.checkbox("Show Confusion Matrix"):
-                with st.spinner("Generating confusion matrix..."):
-                    # Create a mock confusion matrix for the demonstration
-                    # In a real app, you'd load the actual confusion matrix from your evaluation
-                    true_labels = list(performance["classes"].keys())
-                    cm_fig, ax = plt.subplots(figsize=(14, 12))
-
-                    # Check if we have a confusion matrix saved, or create a mock one
-                    if os.path.exists("model/confusion_matrix.npy"):
-                        cm = np.load("model/confusion_matrix.npy")
+                    if not correct:
+                        st.error(
+                            f"""
+                            **Oops!** The model predicted **{top_3_classes[0].replace('_', ' ')}** instead of the true species: **{selected_species}**.
+                            """
+                        )
                     else:
-                        # Create a mock confusion matrix with higher values on diagonal
-                        num_classes = len(true_labels)
-                        cm = np.random.randint(0, 5, size=(num_classes, num_classes))
-                        np.fill_diagonal(
-                            cm, np.random.randint(10, 20, size=num_classes)
+                        st.success(
+                            f"""
+                            **Success!** The model correctly predicted the species: **{top_3_classes[0].replace('_', ' ')}**.
+                            """
                         )
 
-                    sns.heatmap(
-                        cm,
-                        annot=True,
-                        fmt="d",
-                        xticklabels=true_labels,
-                        yticklabels=true_labels,
-                        cmap="Blues",
-                    )
-                    plt.ylabel("True Label")
-                    plt.xlabel("Predicted Label")
-                    plt.title("Confusion Matrix (Counts)")
-                    plt.xticks(rotation=45, ha="right")
-
-                st.pyplot(cm_fig)
+                    st.divider()
 
 
 if __name__ == "__main__":

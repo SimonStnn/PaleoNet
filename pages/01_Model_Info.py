@@ -3,7 +3,17 @@ import json
 from pathlib import Path
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import pandas as pd
+import sys
+
+# Add parent directory to path to import utils
+sys.path.append(str(Path(__file__).parent.parent))
+from utils import (
+    load_performance_metrics,
+    display_performance_metrics,
+    plot_class_distribution,
+)
 
 
 st.set_page_config(page_title="PaleoNet - Model Info", page_icon="🦖", layout="wide")
@@ -78,12 +88,10 @@ def create_model_diagram():
             "color": "lightpink",
         },
         {"name": "Output\n(15 classes)", "x": 1.2, "width": 0.15, "color": "khaki"},
-    ]
-
-    # Draw the blocks
+    ]  # Draw the blocks
     for block in blocks:
         ax.add_patch(
-            plt.Rectangle(
+            patches.Rectangle(
                 (block["x"], 0.4),
                 block["width"],
                 0.2,
@@ -202,53 +210,18 @@ The dataset contains varying numbers of images per species, which created a clas
 )
 
 
-# Create a bar chart of the class distribution using actual data
-def plot_class_distribution():
-    try:
-        # Load performance data using the absolute path
-        performance_path = os.path.join(model_dir, "dinosaur_model_performance.json")
-        with open(performance_path, "r", encoding="utf-8") as f:
-            performance = json.load(f)
+# We now use the shared utility function for plotting class distribution
 
-        # Extract species names and counts
-        species = list(performance["classes"].keys())
-        counts = list(performance["classes"].values())
+performance = load_performance_metrics(model_dir)
 
-    except Exception as e:  # type: ignore[broad-exception-caught]
-        st.error(f"Error loading class distribution: {str(e)}")
-        # Fallback to default values if loading fails
-        species = []
-        counts = []
+if performance is not None:
+    # Convert the class counts to a DataFrame for better display
+    class_counts = pd.DataFrame(
+        list(performance["classes"].items()), columns=["Species", "Image Count"]
+    )
 
-    # Create the figure
-    fig, ax = plt.subplots(figsize=(14, 6))
-
-    # Create the bar chart
-    bars = ax.bar(species, counts)
-
-    # Customize the plot
-    ax.set_title("Number of Images per Species")
-    ax.set_xlabel("Species")
-    ax.set_ylabel("Number of Images")
-    ax.set_xticks(range(len(species)))  # Set the tick positions
-    ax.set_xticklabels(species, rotation=45, ha="right")  # Set the tick labels
-
-    # Add the counts on top of the bars
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2.0,
-            height + 5,
-            f"{height}",
-            ha="center",
-            va="bottom",
-        )
-
-    plt.tight_layout()
-    return fig
-
-
-st.pyplot(plot_class_distribution())
+    # Display as a bar chart
+    st.bar_chart(class_counts.set_index("Species"), use_container_width=True)
 
 st.markdown(
     """
@@ -265,20 +238,11 @@ The key metrics include:
 )
 
 # Load performance metrics if available
-try:
-    # Load performance data using the absolute path
-    performance_path = os.path.join(model_dir, "dinosaur_model_performance.json")
-    with open(performance_path, "r") as f:
-        performance = json.load(f)
-
-    # Create metrics display
-    col1, col2, col3, col4 = st.columns(4)
-
-    col1.metric("Accuracy", f"{performance['accuracy']*100:.2f}%")
-    col2.metric("Precision", f"{performance['precision']*100:.2f}%")
-    col3.metric("Recall", f"{performance['recall']*100:.2f}%")
-    col4.metric("F1 Score", f"{performance['f1_score']*100:.2f}%")
-except FileNotFoundError:
+performance = load_performance_metrics(model_dir)
+if performance is not None:
+    # Display metrics using the common function
+    display_performance_metrics(performance)
+else:
     st.error("Performance metrics file not found.")
 
 st.markdown(
@@ -303,6 +267,6 @@ st.markdown(
 ---
 ### About the Developer
 
-This dinosaur classification model and application were developed by Simon Stijnen for the AI Deep Learning course at VIVES University of Applied Sciences (May 2025).
+This dinosaur classification model and application were developed by **Simon Stijnen** for the AI Deep Learning course at VIVES University of Applied Sciences *(May 2025)*.
 """
 )
