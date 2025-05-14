@@ -176,6 +176,7 @@ def plot_training_history():
         ],
         header=0,  # Use the first row as header
     )
+    st.info("Starts fine-tuning at epoch **10**")
     col1, col2 = st.columns(2)
     with col1:
         st.line_chart(
