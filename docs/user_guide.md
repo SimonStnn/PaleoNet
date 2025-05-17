@@ -11,9 +11,10 @@ This guide will help you get started with using the PaleoNet dinosaur classifica
     - [Windows Users](#windows-users)
     - [Manual Startup](#manual-startup)
   - [Using the Application](#using-the-application)
-    - [Home Page](#home-page)
-    - [Upload Image](#upload-image)
-    - [Sample Gallery](#sample-gallery)
+    - [Navigation](#navigation)
+    - [Home Tab](#home-tab)
+    - [Upload Image Tab](#upload-image-tab)
+    - [Sample Gallery Tab](#sample-gallery-tab)
     - [Model Performance](#model-performance)
     - [Model Info](#model-info)
     - [Dinosaur Encyclopedia](#dinosaur-encyclopedia)
@@ -38,35 +39,50 @@ Before you can use PaleoNet, you need to install the required dependencies:
 
 ### Windows Users
 
-For Windows users, the easiest way to start PaleoNet is:
+For Windows users, you can start PaleoNet using PowerShell:
 
 1. Navigate to the project directory
-2. Double-click the `run_app.bat` file
+2. Open PowerShell and run:
+
+   ```powershell
+   streamlit run PaleoNet.py
+   ```
+
 3. The application will start and open in your default web browser
 
 ### Manual Startup
 
-If you prefer to start the application manually, you can use one of these methods:
+If you prefer to start the application manually, you can use the following command:
 
 ```bash
-streamlit run app/app.py
+streamlit run PaleoNet.py
 ```
 
 This will launch the Streamlit server and open the application in your default web browser at <http://localhost:8501>.
 
 ## Using the Application
 
-### Home Page
+### Navigation
 
-The home page provides an overview of the PaleoNet application, including:
+The application uses a tabbed interface for the main sections:
 
-- A brief description of the project
+- **Home**: Overview of the application
+- **Upload Image**: Upload your own images for classification
+- **Sample Gallery**: Explore sample images from the test dataset
+
+Additional pages are accessible from the sidebar pages menu.
+
+### Home Tab
+
+The home tab provides an overview of the PaleoNet application, including:
+
+- A brief description of the project and features
 - A list of supported dinosaur species
-- A quick demo that classifies a random sample image
+- A quick demo that lets you classify a random sample image
 
-### Upload Image
+### Upload Image Tab
 
-The "Upload Image" page allows you to:
+The "Upload Image" tab allows you to:
 
 1. Upload your own dinosaur image (.jpg, .jpeg, or .png format)
 2. View the classification results, including:
@@ -81,9 +97,9 @@ Tips for uploading images:
 - Images should show the dinosaur clearly against the background
 - Both illustrations and photographs work well
 
-### Sample Gallery
+### Sample Gallery Tab
 
-The "Sample Gallery" page lets you:
+The "Sample Gallery" tab lets you:
 
 1. Select a dinosaur species from the dropdown menu
 2. View random sample images from that species
@@ -94,7 +110,7 @@ This is useful for understanding the model's strengths and weaknesses.
 
 ### Model Performance
 
-The "Model Performance" page provides:
+The "Model Performance" page (accessible from the sidebar) provides:
 
 - Overall accuracy, precision, recall, and F1 score metrics
 - Explanation of the model architecture
@@ -103,7 +119,7 @@ The "Model Performance" page provides:
 
 ### Model Info
 
-The "Model Info" page offers technical details about:
+The "Model Info" page (accessible from the sidebar) offers technical details about:
 
 - The model architecture (EfficientNetB0 with custom layers)
 - Training process and techniques used
@@ -112,7 +128,7 @@ The "Model Info" page offers technical details about:
 
 ### Dinosaur Encyclopedia
 
-The "Dinosaur Encyclopedia" page is an educational resource that provides:
+The "Dinosaur Encyclopedia" page (accessible from the sidebar) is an educational resource that provides:
 
 - Detailed information about each dinosaur species
 - Time period when they lived

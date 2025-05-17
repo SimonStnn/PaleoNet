@@ -6,14 +6,14 @@ This document provides information for developers interested in contributing to 
 
 1. **Clone the Repository**
 
-   ```bash
+   ```powershell
    git clone https://github.com/yourusername/PaleoNet.git
    cd PaleoNet
    ```
 
 2. **Create a Virtual Environment**
 
-   ```bash
+   ```powershell
    # Using venv
    python -m venv venv
    
@@ -26,7 +26,7 @@ This document provides information for developers interested in contributing to 
 
 3. **Install Dependencies**
 
-   ```bash
+   ```powershell
    pip install -r requirements.txt
    ```
 
@@ -38,7 +38,8 @@ PaleoNet/
 ├── utils.py                # Utility functions
 ├── pages/                  # Additional app pages
 │   ├── 01_Model_Info.py
-│   └── 02_Dinosaur_Encyclopedia.py
+│   ├── 02_Dinosaur_Encyclopedia.py
+│   └── 03_Model_Performance.py
 ├── assets/                 # Images and static assets
 │   ├── banner.png
 │   └── logo.png
@@ -86,9 +87,10 @@ To retrain the model with different parameters or architectures, modify this not
 The main application file:
 
 - Loads the trained model
-- Provides the user interface
+- Provides the user interface with a tabbed navigation system
 - Handles image upload and processing
-- Displays classification results
+- Displays classification results 
+- Contains three main tabs: Home, Upload Image, and Sample Gallery
 
 ### 3. Pages (pages/)
 
@@ -96,6 +98,7 @@ Additional application pages:
 
 - `01_Model_Info.py`: Displays model architecture and performance
 - `02_Dinosaur_Encyclopedia.py`: Information about dinosaur species
+- `03_Model_Performance.py`: Displays model performance metrics and visualizations
 
 ### 4. Utility Functions (utils.py)
 
@@ -122,7 +125,7 @@ Contains helper functions for:
 
 3. **Run tests locally**
 
-   ```bash
+   ```powershell
    # If using pytest
    pytest tests/
    ```

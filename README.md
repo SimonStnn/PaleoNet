@@ -16,7 +16,7 @@ Explore prehistoric creatures through the power of artificial intelligence! 🔍
 - **Interactive Gallery** - Explore sample images from the test dataset
 - **Species Encyclopedia** - Learn fascinating facts about each dinosaur species
 - **Model Insights** - Visualize the model architecture and performance metrics
-- **Multi-page Interface** - Navigate between different app sections easily
+- **Tabbed Navigation** - Switch easily between Home, Upload Image, and Sample Gallery sections
 
 ## 🖼️ Application Screenshots
 
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Run the Streamlit app
 
 ```bash
-streamlit run app/app.py
+streamlit run PaleoNet.py
 ```
 
 Once started, the application will be available at <http://localhost:8501>

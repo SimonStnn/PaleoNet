@@ -10,7 +10,7 @@ Since the `model/` directory and some data files are excluded from git tracking 
 
 1. Compress your `model/` directory into a ZIP file:
 
-   ```bash
+   ```powershell
    # Windows (PowerShell)
    Compress-Archive -Path .\model\* -DestinationPath model.zip
    
@@ -35,7 +35,7 @@ Since the `model/` directory and some data files are excluded from git tracking 
 
 1. Compress your dataset directory into a ZIP file:
 
-   ```bash
+   ```powershell
    # Windows (PowerShell)
    Compress-Archive -Path .\data\dinosaur_dataset_split -DestinationPath dataset.zip
    
