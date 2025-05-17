@@ -1,11 +1,10 @@
 import os
-import json
+import sys
 from pathlib import Path
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pandas as pd
-import sys
 
 # Add parent directory to path to import utils
 sys.path.append(str(Path(__file__).parent.parent))
@@ -25,6 +24,40 @@ model_dir = root_dir / "model"
 
 st.title("Model Information")
 
+st.markdown(
+    """
+## Dataset Information
+
+The model was trained on the [Dinosaur Image Dataset](https://www.kaggle.com/datasets/larserikrisholm/dinosaur-image-dataset-15-species) from Kaggle, which includes images of 15 dinosaur species.
+
+### Species Distribution:
+The dataset contains varying numbers of images per species, which created a class imbalance addressed during training with class weights.
+
+"""
+)
+
+
+# We now use the shared utility function for plotting class distribution
+
+performance = load_performance_metrics(model_dir)
+
+if performance is not None:
+    # Convert the class counts to a DataFrame for better display
+    class_counts = pd.DataFrame(
+        list(performance["classes"].items()), columns=["Species", "Image Count"]
+    )
+
+    # Display as a bar chart
+    st.bar_chart(class_counts.set_index("Species"), use_container_width=True)
+
+st.markdown(
+    """
+### Dataset Preparation:
+- Split into train (70%), validation (15%), and test (15%) sets
+- Images resized to 296x296 pixels
+- Data augmentation applied to the training set to increase diversity
+"""
+)
 st.markdown(
     """
 ## Model Architecture
@@ -177,52 +210,26 @@ def plot_training_history():
         header=0,  # Use the first row as header
     )
     st.info("Starts fine-tuning at epoch **10**")
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2, border=True)
     with col1:
         st.line_chart(
             chart_data.iloc[:, 1:3],  # Show columns 1 and 2
+            x_label="Epoch",
+            y_label="Accuracy",
             use_container_width=True,
         )
 
     with col2:
         st.line_chart(
             chart_data.iloc[:, 3:5],  # Show columns 3 and 4
+            x_label="Epoch",
+            y_label="Loss",
             use_container_width=True,
         )
 
 
 st.subheader("Training History")
 plot_training_history()
-
-st.markdown(
-    """
-## Dataset Information
-
-The model was trained on the [Dinosaur Image Dataset](https://www.kaggle.com/datasets/larserikrisholm/dinosaur-image-dataset-15-species) from Kaggle, which includes images of 15 dinosaur species.
-
-### Dataset Preparation:
-- Split into train (70%), validation (15%), and test (15%) sets
-- Images resized to 296x296 pixels
-- Data augmentation applied to the training set to increase diversity
-
-### Species Distribution:
-The dataset contains varying numbers of images per species, which created a class imbalance addressed during training with class weights.
-"""
-)
-
-
-# We now use the shared utility function for plotting class distribution
-
-performance = load_performance_metrics(model_dir)
-
-if performance is not None:
-    # Convert the class counts to a DataFrame for better display
-    class_counts = pd.DataFrame(
-        list(performance["classes"].items()), columns=["Species", "Image Count"]
-    )
-
-    # Display as a bar chart
-    st.bar_chart(class_counts.set_index("Species"), use_container_width=True)
 
 st.markdown(
     """

@@ -1,12 +1,7 @@
-import os
-import pandas as pd
-import matplotlib.pyplot as plt
-import streamlit as st
 from pathlib import Path
-import sys
+import pandas as pd
+import streamlit as st
 
-# Add parent directory to path to import utils
-sys.path.append(str(Path(__file__).parent.parent))
 from utils import (
     load_performance_metrics,
     display_performance_metrics,
