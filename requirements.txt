@@ -11,3 +11,4 @@ jupyter>=1.0.0
 h5py>=3.1.0
 streamlit>=1.35.0
 split-folders>=0.5.1
+requests>=2.25.0

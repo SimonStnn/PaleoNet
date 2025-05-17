@@ -1,16 +1,17 @@
 import os
 import json
 import random
+from typing import Any
+from pathlib import Path
 import streamlit as st
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 from PIL import Image
-from typing import Any
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
+
+from utils import download_model_files, download_dataset, display_dino_info
 
 # Set page config
 st.set_page_config(
@@ -24,21 +25,50 @@ st.set_page_config(
 # Load your model and class mapping
 @st.cache_resource
 def load_model() -> tuple[tf.keras.Model, dict[str, int], dict[str, Any]]:
-    try:
-        model = tf.keras.models.load_model(
-            "model/dinosaur_classifier_transfer_learning.keras"
+    # Define paths
+    app_dir = Path(__file__).parent
+    model_dir = app_dir / "model"
+    data_dir = app_dir / "data"
+    model_path = model_dir / "dinosaur_classifier_transfer_learning.keras"
+    class_mapping_path = model_dir / "dinosaur_class_mapping.json"
+    performance_path = model_dir / "dinosaur_model_performance.json"
+
+    # GitHub release URLs (replace with your actual release URLs)
+    github_model_url = (
+        "https://github.com/SimonStnn/PaleoNet/releases/download/v0.0.0-pre/model.zip"
+    )
+    github_dataset_url = (
+        "https://github.com/SimonStnn/PaleoNet/releases/download/v0.0.0-pre/dataset.zip"
+    )
+
+    # Try to download the model if it doesn't exist
+    if not download_model_files(github_model_url, model_dir):
+        st.error(
+            "Failed to download model files. The app cannot function without these files."
+        )
+        return None, {}, {}
+
+    # Try to download the dataset if it doesn't exist
+    # This is non-blocking - app can still function without the dataset
+    if not download_dataset(github_dataset_url, data_dir):
+        st.error(
+            "Couldn't download the dataset. Some features like the sample gallery may not work correctly."
         )
 
+    try:
+        # Load the model
+        model = tf.keras.models.load_model(str(model_path))
+
         # Load the class mapping
-        with open("model/dinosaur_class_mapping.json", "r", encoding="utf-8") as f:
+        with open(str(class_mapping_path), "r", encoding="utf-8") as f:
             class_mapping: dict[str, int] = json.load(f)
 
         # Load performance metrics
-        with open("model/dinosaur_model_performance.json", "r", encoding="utf-8") as f:
+        with open(str(performance_path), "r", encoding="utf-8") as f:
             performance: dict[str, Any] = json.load(f)
 
         return model, class_mapping, performance
-    except Exception as e:  # type: ignore
+    except Exception as e:  # type: ignore[broad-exception-caught]
         st.error(f"Error loading model: {e}")
         return None, {}, {}
 
@@ -78,133 +108,24 @@ def display_prediction(pred_idx, confidence, top_3_classes, top_3_confidences):
 
     # Show top 3 predictions
     st.subheader("Top 3 Predictions:")
-    st.table(
+    st.dataframe(
         pd.DataFrame(
             {
                 "Species": [c.replace("_", " ") for c in top_3_classes],
                 "Confidence": [f"{c * 100:.2f}%" for c in top_3_confidences],
             }
-        )
+        ),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Species": st.column_config.TextColumn(
+                "Species", help="Predicted species name"
+            ),
+            "Confidence": st.column_config.TextColumn(
+                "Confidence", help="Confidence level of the prediction"
+            ),
+        },
     )
-
-
-# Display dinosaur info
-def display_dino_info(species):
-    dino_info = {
-        "Ankylosaurus": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "8 meters",
-            "weight": "4-8 tons",
-            "description": "Ankylosaurus was a heavily armored dinosaur with a club-like tail that it could swing as a weapon.",
-        },
-        "Brachiosaurus": {
-            "period": "Late Jurassic",
-            "diet": "Herbivore",
-            "length": "25 meters",
-            "weight": "30-50 tons",
-            "description": "Brachiosaurus was a massive sauropod with a long neck that allowed it to feed on tall trees.",
-        },
-        "Compsognathus": {
-            "period": "Late Jurassic",
-            "diet": "Carnivore",
-            "length": "1 meter",
-            "weight": "3 kilograms",
-            "description": "Compsognathus was one of the smallest dinosaurs, about the size of a chicken.",
-        },
-        "Corythosaurus": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "9 meters",
-            "weight": "3-4 tons",
-            "description": "Corythosaurus had a distinctive hollow crest on its head that may have been used for vocalizations.",
-        },
-        "Dilophosaurus": {
-            "period": "Early Jurassic",
-            "diet": "Carnivore",
-            "length": "7 meters",
-            "weight": "400 kilograms",
-            "description": "Dilophosaurus had two crests on its head and, contrary to 'Jurassic Park', did not spit venom.",
-        },
-        "Dimorphodon": {
-            "period": "Early Jurassic",
-            "diet": "Carnivore (Fish)",
-            "length": "1 meter wingspan",
-            "weight": "1-2 kilograms",
-            "description": "Dimorphodon was a flying reptile with a large head and two types of teeth.",
-        },
-        "Gallimimus": {
-            "period": "Late Cretaceous",
-            "diet": "Omnivore",
-            "length": "6 meters",
-            "weight": "400 kilograms",
-            "description": "Gallimimus was an ostrich-like dinosaur and one of the fastest dinosaurs.",
-        },
-        "Microceratus": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "0.6 meters",
-            "weight": "3 kilograms",
-            "description": "Microceratus was a small ceratopsian with a tiny frill and no horns.",
-        },
-        "Pachycephalosaurus": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "4.5 meters",
-            "weight": "450 kilograms",
-            "description": "Pachycephalosaurus had a thick, domed skull that it may have used for head-butting.",
-        },
-        "Parasaurolophus": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "10 meters",
-            "weight": "2.5 tons",
-            "description": "Parasaurolophus had a long, hollow crest on its head that may have been used for vocalizations.",
-        },
-        "Spinosaurus": {
-            "period": "Mid Cretaceous",
-            "diet": "Carnivore (Fish)",
-            "length": "15-18 meters",
-            "weight": "7-20 tons",
-            "description": "Spinosaurus had a sail-like structure on its back and was likely semi-aquatic.",
-        },
-        "Stegosaurus": {
-            "period": "Late Jurassic",
-            "diet": "Herbivore",
-            "length": "9 meters",
-            "weight": "5-7 tons",
-            "description": "Stegosaurus had large plates along its back and spikes on its tail called thagomizer.",
-        },
-        "Triceratops": {
-            "period": "Late Cretaceous",
-            "diet": "Herbivore",
-            "length": "9 meters",
-            "weight": "5-9 tons",
-            "description": "Triceratops had three horns on its face and a large frill that protected its neck.",
-        },
-        "Tyrannosaurus_Rex": {
-            "period": "Late Cretaceous",
-            "diet": "Carnivore",
-            "length": "12 meters",
-            "weight": "8-14 tons",
-            "description": "Tyrannosaurus Rex was one of the largest land carnivores with powerful jaws and tiny arms.",
-        },
-        "Velociraptor": {
-            "period": "Late Cretaceous",
-            "diet": "Carnivore",
-            "length": "2 meters",
-            "weight": "15-20 kilograms",
-            "description": "Velociraptor was much smaller than shown in 'Jurassic Park' and had feathers.",
-        },
-    }
-
-    species_name = species.replace("_", " ")
-    if species in dino_info:
-        info = dino_info[species]
-
-        st.subheader(f"About {species_name}")
-
-        st.table(pd.DataFrame.from_dict(info, orient="index"))
 
 
 # Main app
@@ -221,6 +142,12 @@ def main():
         "Choose Mode", ["Home", "Upload Image", "Sample Gallery"]
     )  # Load model and data
     model, class_mapping, performance = load_model()
+
+    if model is None:
+        st.error(
+            "Model not loaded. Please check your internet connection or the model files."
+        )
+        return
 
     # Create class_labels (invert the mapping from class names to indices)
     class_labels = {i: k for i, k in enumerate(class_mapping.keys())}
@@ -267,17 +194,23 @@ def main():
         # Show a random sample image
         st.markdown("### Quick Demo")
         if st.button("Classify a Random Sample"):
-            if model is not None:
-                # Get a random sample from the test set
-                test_dir = os.path.join("data", "dinosaur_dataset_split", "test")
+            if model is not None:  # Get a random sample from the test set
+                test_dir = Path("data") / "dinosaur_dataset_split" / "test"
+                # Check if test directory exists
+                if not test_dir.exists():
+                    st.warning(
+                        "Test dataset not available. Please download the dataset from GitHub releases."
+                    )
+                    return
+
                 species_folders = os.listdir(test_dir)
                 random_species = random.choice(species_folders)
-                species_folder = os.path.join(test_dir, random_species)
+                species_folder = test_dir / random_species
                 image_files = [
                     f for f in os.listdir(species_folder) if f.endswith(".jpg")
                 ]
                 random_image = random.choice(image_files)
-                image_path = os.path.join(species_folder, random_image)
+                image_path = species_folder / random_image
 
                 img = Image.open(image_path)
 
@@ -286,7 +219,7 @@ def main():
                 with col1:
                     st.image(
                         img,
-                        caption=f"True species: **{random_species}**",
+                        caption=f"True species: **{random_species.replace('_',' ')}**",
                         use_container_width=True,
                     )
 
@@ -314,6 +247,7 @@ def main():
                     )
 
                 # Display info about the predicted species
+                st.subheader(f"About {top_3_classes[0].replace('_', ' ')}")
                 display_dino_info(top_3_classes[0])
 
     # Upload image page
@@ -351,11 +285,12 @@ def main():
                     )
 
                 # Display info about the predicted species
+                st.subheader(f"About {top_3_classes[0].replace('_', ' ')}")
                 display_dino_info(top_3_classes[0])
             except Exception as e:  # type: ignore[broad-exception-caught]
-                st.error(f"Error during prediction: {str(e)[:150]}")
-
-    # Sample gallery page
+                st.error(
+                    f"Error during prediction: {str(e)[:150]}"
+                )  # Sample gallery page
     elif app_mode == "Sample Gallery":
         st.title("Sample Gallery")
 
@@ -366,8 +301,18 @@ def main():
         )
 
         if model is not None:
+            # Set up paths
+            app_dir = Path(__file__).parent
+            test_dir = app_dir / "data" / "dinosaur_dataset_split" / "test"
+
+            # Check if test directory exists
+            if not test_dir.exists():
+                st.warning(
+                    "Test dataset not available. Please download the dataset from GitHub releases."
+                )
+                return
+
             # Let user select a species
-            test_dir = os.path.join("data", "dinosaur_dataset_split", "test")
             species_folders = sorted(os.listdir(test_dir))
 
             selected_species = st.selectbox(
@@ -375,7 +320,7 @@ def main():
                 [s.replace("_", " ") for s in species_folders],
             )
 
-            species_folder = os.path.join(test_dir, selected_species.replace(" ", "_"))
+            species_folder = test_dir / selected_species.replace(" ", "_")
             image_files = [f for f in os.listdir(species_folder) if f.endswith(".jpg")]
 
             # Display 3 random images
@@ -383,7 +328,7 @@ def main():
                 sample_images = random.sample(image_files, min(3, len(image_files)))
 
                 for img_file in sample_images:
-                    img_path = os.path.join(species_folder, img_file)
+                    img_path = species_folder / img_file
                     img = Image.open(img_path)
 
                     col1, col2 = st.columns([1, 1])

@@ -1,15 +1,139 @@
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from PIL import Image
-from keras.preprocessing import image
-from keras import applications
-import keras
-import streamlit as st
 import json
+import os
+import sys
+import time
+import zipfile
+import requests
+from typing import Final
+from pathlib import Path
+import streamlit as st
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from PIL import Image
+import keras
+from keras.preprocessing import image
+from keras import applications
+
+
+def download_model_files(download_url: str, local_model_dir: Path) -> bool:
+    """
+    Download model files from a GitHub release if they don't exist locally.
+
+    Args:
+        github_release_url (str): URL to the GitHub release asset (ZIP file)
+        local_model_dir (Path): Path where model files should be stored
+
+    Returns:
+        bool: True if download was successful or files already exist, False otherwise
+    """
+    # Check if model directory exists
+    if local_model_dir.exists() and any(local_model_dir.iterdir()):
+        # Check if the expected model file exists
+        model_file = local_model_dir / "dinosaur_classifier_transfer_learning.keras"
+        if model_file.exists():
+            # Model files already exist locally
+            return True
+
+    # Create model directory if it doesn't exist
+    local_model_dir.mkdir(exist_ok=True, parents=True)
+
+    # Create a placeholder in the Streamlit app
+    download_placeholder = st.empty()
+    download_placeholder.info("Downloading model files... This may take a moment.")
+
+    try:
+        # Download the ZIP file
+        with st.spinner("Downloading model files..."):
+            response = requests.get(download_url, stream=True, timeout=10)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        # Save the ZIP file
+        zip_path = local_model_dir / "model_files.zip"
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        # Extract the ZIP file
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(local_model_dir.parent)  # Extract to parent directory
+
+        # Remove the ZIP file
+        zip_path.unlink()
+
+        download_placeholder.success("Model files downloaded successfully!")
+        time.sleep(2)  # Show success message for 2 seconds
+        download_placeholder.empty()  # Clear the message
+
+        return True
+    except Exception as e:
+        download_placeholder.error(f"Error downloading model files: {str(e)}")
+        print(f"Error downloading model files: {str(e)}", file=sys.stderr)
+        return False
+
+
+def download_dataset(dataset_url: str, dataset_dir: Path) -> bool:
+    """
+    Download dataset files from a GitHub release if they don't exist locally.
+
+    Args:
+        dataset_url (str): URL to the dataset ZIP file
+        dataset_dir (Path): Path where dataset files should be stored
+
+    Returns:
+        bool: True if download was successful or files already exist, False otherwise
+    """
+
+    # Check if dataset directory exists with expected structure
+    if dataset_dir.exists():
+        # Check if the expected dataset structure exists
+        test_dir = dataset_dir / "dinosaur_dataset_split" / "test"
+        train_dir = dataset_dir / "dinosaur_dataset_split" / "train"
+        val_dir = dataset_dir / "dinosaur_dataset_split" / "val"
+
+        if test_dir.exists() and train_dir.exists() and val_dir.exists():
+            # Dataset structure seems to be valid
+            return True
+
+    # Create dataset directory if it doesn't exist
+    dataset_dir.mkdir(exist_ok=True, parents=True)
+
+    # Create a placeholder in the Streamlit app
+    download_placeholder = st.empty()
+    download_placeholder.info("Downloading dataset files... This may take a moment.")
+
+    try:
+        # Download the ZIP file
+        with st.spinner("Downloading dataset files..."):
+            response = requests.get(
+                dataset_url, stream=True, timeout=60
+            )  # Longer timeout for dataset
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        # Save the ZIP file
+        zip_path = dataset_dir / "dataset.zip"
+        with open(zip_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        # Extract the ZIP file
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(dataset_dir)  # Extract to dataset directory
+
+        # Remove the ZIP file
+        zip_path.unlink()
+
+        download_placeholder.success("Dataset files downloaded successfully!")
+        time.sleep(2)  # Show success message for 2 seconds
+        download_placeholder.empty()  # Clear the message
+
+        return True
+    except Exception as e:
+        download_placeholder.error(f"Error downloading dataset files: {str(e)}")
+        print(f"Error downloading dataset files: {str(e)}", file=sys.stderr)
+        return False
 
 
 # Function to create a grid of sample images
