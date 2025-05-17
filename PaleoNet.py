@@ -138,22 +138,24 @@ def main():
         use_container_width=True,
     )
 
-    app_mode = st.sidebar.selectbox(
-        "Choose Mode", ["Home", "Upload Image", "Sample Gallery"]
-    )  # Load model and data
+    # Load model and data
     model, class_mapping, performance = load_model()
 
     if model is None:
         st.error(
             "Model not loaded. Please check your internet connection or the model files."
         )
-        return
-
-    # Create class_labels (invert the mapping from class names to indices)
+        return  # Create class_labels (invert the mapping from class names to indices)
     class_labels = {i: k for i, k in enumerate(class_mapping.keys())}
 
-    # Home page
-    if app_mode == "Home":
+    # Create tabs for navigation instead of a sidebar selectbox
+    # This replaces the previous app_mode selectbox while keeping the multi-page navigation in the sidebar
+    home_tab, upload_tab, gallery_tab = st.tabs(
+        ["Home", "Upload Image", "Sample Gallery"]
+    )
+
+    # Home tab
+    with home_tab:
         st.title("PaleoNet: Dinosaur Species Classifier 🦖")
 
         st.markdown(
@@ -183,7 +185,7 @@ def main():
             """
         ### Get Started:
         
-        Use the sidebar to navigate to different sections of the app.
+        Use the tabs above to navigate to different sections of the app.
         
         - **Upload Image**: Upload your own dinosaur image for classification
         - **Sample Gallery**: View and classify sample images from our test set
@@ -250,8 +252,8 @@ def main():
                 st.subheader(f"About {top_3_classes[0].replace('_', ' ')}")
                 display_dino_info(top_3_classes[0])
 
-    # Upload image page
-    elif app_mode == "Upload Image":
+    # Upload image tab
+    with upload_tab:
         st.title("Upload a Dinosaur Image")
 
         st.markdown(
@@ -288,10 +290,10 @@ def main():
                 st.subheader(f"About {top_3_classes[0].replace('_', ' ')}")
                 display_dino_info(top_3_classes[0])
             except Exception as e:  # type: ignore[broad-exception-caught]
-                st.error(
-                    f"Error during prediction: {str(e)[:150]}"
-                )  # Sample gallery page
-    elif app_mode == "Sample Gallery":
+                st.error(f"Error during prediction: {str(e)[:150]}")
+
+    # Sample gallery tab
+    with gallery_tab:
         st.title("Sample Gallery")
 
         st.markdown(
